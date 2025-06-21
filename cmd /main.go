@@ -13,7 +13,14 @@ import (
 )
 
 func main() {
-	dsn := "host=localhost user=postgres password=postgres dbname=pomodoro port=5432 sslmode=disable"
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET не задан в переменных окружения")
+	}
+	dsn := os.Getenv("DATABASE_DSN")
+	if dsn == "" {
+		log.Fatal("DATABASE_DSN не задан в переменных окружения")
+	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
@@ -23,7 +30,21 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
+	handlers.SetJwtKey(jwtSecret)
+
 	r := gin.Default()
+
+	// CORS middleware
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 
 	r.POST("/register", handlers.Register(db))
 	r.POST("/login", handlers.Login(db))
