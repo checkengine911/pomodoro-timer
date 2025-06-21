@@ -12,7 +12,11 @@ import (
 	"gorm.io/gorm"
 )
 
-var jwtKey = []byte("my_secret_key") // Лучше вынести в env
+var jwtKey []byte
+
+func SetJwtKey(key string) {
+	jwtKey = []byte(key)
+}
 
 type Claims struct {
 	UserID uint `json:"user_id"`
